@@ -1,107 +1,155 @@
 
-
-
-import asyncio
-import nest_asyncio
-# Apply nest_asyncio to current loop and Windows ProactorEventLoop used by PyShark
-nest_asyncio.apply()
-if hasattr(asyncio, "ProactorEventLoop"):
-    try:
-        nest_asyncio.apply(asyncio.ProactorEventLoop())
-    except Exception:
-        pass
-import pyshark
 import csv
-from packet.feature_extractor import FeatureExtractor
+import pyshark
+import nest_asyncio
+
+from feature.feature_extractor import FeatureExtractor
 
 
+class PacketCapture:
 
+    def __init__(
+        self,
+        interface="Wi-Fi",
+        feature_extractor=None,
+        next_fn=None
+    ):
+        self.interface = interface
+        self.extractor = feature_extractor or FeatureExtractor()
+        self.next_fn = next_fn
 
-fe = FeatureExtractor()
+        self.capture = None
+        self.count = 0
+        self.running = False
 
+    def _setup_capture(self, capture):
+        self.capture = capture
 
-def live_capture_packets(interface="Wi-Fi", packet_count=0,extract_packet_features_fn=fe.extract, next_fn=None):
-    capture = pyshark.LiveCapture(interface=interface)
-    if hasattr(capture, "eventloop"):
-        nest_asyncio.apply(capture.eventloop)
-    packet_iterator = capture.sniff_continuously(packet_count=packet_count)
-    
-    for packet in packet_iterator:
+        if hasattr(capture, "eventloop"):
+            nest_asyncio.apply(capture.eventloop)
+
+    def _process_packet(self, packet):
         try:
-            features = extract_packet_features_fn(packet)
-            if next_fn:
-                next_fn(features)
-        except KeyboardInterrupt:
-                print(f"\n live Capture stopped by user")
+            features = self.extractor.extract(packet)
 
+            self.count += 1
 
-def extract_packets(
-    pcap_file=None,
-    output_file=None,
-    live_capture=False,
-    interface="Wi-Fi",
-    packet_count=None,
-    extract_packet_features_fn=extract_packet_features
-):
-    print("Starting packet extraction...")
-    print(f"Live capture: {live_capture} | Interface: {interface}")
-    if packet_count:
-        print(f"Target count: {packet_count} packets")
+            if self.next_fn:
+                self.next_fn(features)
 
-    capture = pyshark.FileCapture(pcap_file, keep_packets=False)
-    if hasattr(capture, "eventloop"):
-        nest_asyncio.apply(capture.eventloop)
-    packet_iterator = capture
+            return features
 
-    csv_file = None
-    csv_writer = None
-    count = 0
+        except Exception as e:
+            print(f"Packet skipped: {e}")
+            return None
 
-    try:
-        if output_file:
-            csv_file = open(output_file, mode="w", newline="", encoding="utf-8")
+    def live_capture(
+        self,
+        packet_count=0,
+        output_file=None,
+        next_fn=None
+    ):
+        capture = pyshark.LiveCapture(
+            interface=self.interface
+        )
 
-        for packet in packet_iterator:
-            try:
-                features = extract_packet_features_fn(packet)
-                
-                # Initialize CSV writer with headers on the first packet
-                if csv_file:
-                    if csv_writer is None:
-                        csv_writer = csv.DictWriter(csv_file, fieldnames=list(features.keys()))
-                        csv_writer.writeheader()
-                    csv_writer.writerow(features)
-                    csv_file.flush()  # Ensure data is saved immediately to disk
+        self._setup_capture(capture)
+        self.running = True
 
-                count += 1
-                if packet_count and count >= packet_count:
-                    print(f"Reached target of {packet_count} packets.")
+        if next_fn:
+            self.next_fn = next_fn
+
+        try:
+            for packet in capture.sniff_continuously(
+                packet_count=packet_count
+            ):
+                if not self.running:
                     break
 
-            except Exception as e:
-                print(f"Packet skipped: {e}")
+                features = self._process_packet(packet)
 
-    except KeyboardInterrupt:
-        print(f"\nCapture stopped by user. Total packets captured: {count}")
-    finally:
-        if csv_file:
-            csv_file.close()
-            print(f"Saved {count} packets to {output_file}")
-        try:
+                if features and output_file:
+                    self._write_features(
+                        features,
+                        output_file
+                    )
+
+        except KeyboardInterrupt:
+            print("\nLive capture stopped.")
+
+        finally:
+            self.running = False
             capture.close()
-        except Exception:
+
+        print(f"Total packets processed: {self.count}")
+
+    def read_pcap(
+        self,
+        pcap_file,
+        packet_count=None,
+        output_file=None,
+        next_fn=None
+    ):
+        capture = pyshark.FileCapture(
+            pcap_file,
+            keep_packets=False
+        )
+
+        self._setup_capture(capture)
+
+        if next_fn:
+            self.next_fn = next_fn
+
+        try:
+            for packet in capture:
+
+                features = self._process_packet(packet)
+
+                if features and output_file:
+                    self._write_features(
+                        features,
+                        output_file
+                    )
+
+                if packet_count and self.count >= packet_count:
+                    break
+
+        except KeyboardInterrupt:
+            print("\nPCAP processing stopped.")
+
+        finally:
+            capture.close()
+
+        print(f"Total packets processed: {self.count}")
+
+    def _write_features(self, features, output_file):
+        file_exists = False
+
+        try:
+            with open(output_file, "r"):
+                file_exists = True
+        except FileNotFoundError:
             pass
 
+        with open(
+            output_file,
+            "a",
+            newline="",
+            encoding="utf-8"
+        ) as file:
 
+            writer = csv.DictWriter(
+                file,
+                fieldnames=list(features.keys())
+            )
 
+            if not file_exists:
+                writer.writeheader()
 
+            writer.writerow(features)
 
-# extract_packets(
-#     output_file="features.csv",
-#     live_capture=True,
-#     interface="Wi-Fi",
-#     packet_count=50,
-# )
+    def stop(self):
+        self.running = False
 
-
-
+        if self.capture:
+            self.capture.close()
