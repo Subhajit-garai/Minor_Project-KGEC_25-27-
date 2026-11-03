@@ -5,7 +5,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
     
 import joblib
-from model_service.utils.logger import logger as log
+from utils.logger import logger as log
 # load the model and features
 
 # set up logger 

@@ -1,33 +1,32 @@
-
-from flow.flow_manager import FlowManager
+from capture.packet_capture import PacketCapture
+from feature.feature_extractor import FeatureExtractor
+from flow.flow_processor import FlowProcessor
 from utils.logger import logger as log
-from capture.livecapture import PacketCapture 
+
 
 if __name__ == "__main__":
     logger = log()
-    flow_manager = FlowManager()
-    pc = PacketCapture(interface="Wi-Fi")
+    feature_extractor = FeatureExtractor()
+    flow_processor = FlowProcessor()
 
-    def process_packet(packet_features):
-        logger.log("info", "Packet features extracted:")
-        logger.log("info", str(packet_features))
-        
-        flow = flow_manager.process_packet(packet_features)
+    def process_packet(packet_features: dict):
+        logger.log("info", f"Packet: {packet_features['src_ip']}:{packet_features['src_port']} -> "
+        f"{packet_features['dst_ip']}:{packet_features['dst_port']} "
+        f"[{packet_features['transport_protocol']}] len={packet_features['packet_length']}")
 
+        flow = flow_processor.process_packet(packet_features)
         print(
-            "Flow packets:",
-            flow.total_packets,
-            "Forward:",
-            len(flow.fwd_lengths),
-            "Backward:",
-            len(flow.bwd_lengths)
+            f"Flow Key: {flow.bidirectional_key} | "
+            f"Total Pkts: {flow.total_packets} (Fwd: {len(flow.fwd_lengths)}, Bwd: {len(flow.bwd_lengths)}) | "
+            f"Bytes: {flow.total_bytes} | Duration: {flow.duration}s"
         )
 
-    # Start live capture on the active Wi-Fi adapter
-    
-    
-    pc.live_capture(
-        packet_count=100,
-        output_file="features.csv",
-        next_fn=process_packet
+    capturer = PacketCapture()
+    print("Initializing DPI Packet Capture...")
+    capturer.capture_live(
+        interface="Wi-Fi",
+        packet_count=10,
+        bpf_filter="ip or ip6",
+        callback=process_packet,
+        feature_extractor=feature_extractor
     )
