@@ -134,9 +134,7 @@ class PredictionEngine:
 
 
         features_dict = self.extract_flow_features(flow)
-        
-        print("Extracted Features for Prediction:")
-        print("features_dict:", features_dict)
+        logger.info("Extracted Features for Prediction:")
         
         row = [features_dict.get(feat, 0.0) for feat in self.feature_names]
         df = pd.DataFrame([row], columns=self.feature_names)
