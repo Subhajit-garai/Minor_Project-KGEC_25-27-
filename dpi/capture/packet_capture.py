@@ -4,8 +4,12 @@ import logging
 from typing import Optional, Callable, Any
 import pyshark
 import pyshark.capture.live_capture as lc
-from feature.feature_extractor import FeatureExtractor
-from capture.packet_writer import PacketWriter
+try:
+    from feature.feature_extractor import FeatureExtractor
+    from capture.packet_writer import PacketWriter
+except ImportError:
+    from feature.feature_extractor import FeatureExtractor
+    from capture.packet_writer import PacketWriter
 
 logger = logging.getLogger(__name__)
 

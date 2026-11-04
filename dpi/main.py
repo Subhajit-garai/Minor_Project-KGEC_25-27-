@@ -1,8 +1,16 @@
+from pathlib import Path
+import sys
+
+# Ensure dpi root is in sys.path
+DPI_DIR = Path(__file__).resolve().parent
+if str(DPI_DIR) not in sys.path:
+    sys.path.insert(0, str(DPI_DIR))
+
 from capture.packet_capture import PacketCapture
 from feature.feature_extractor import FeatureExtractor
 from flow.flow_manager import FlowManager
 from utils.logger import logger as log
-from model.predict import engine ,model, features
+from model.predict import engine, model, features
 
 
 if __name__ == "__main__":
@@ -23,9 +31,10 @@ if __name__ == "__main__":
             f"Bytes: {flow.total_bytes} | Duration: {flow.duration}s"
         )
         
-        print( flow_manager.get_flow(flow.bidirectional_key).to_dict())
-        
-        print( "----> " ,model.predict(flow.to_dict()) )
+        # Predict traffic classification using PredictionEngine
+        prediction_result = engine.predict_flow(flow)
+        print("----> ML Classification:", prediction_result["prediction"], 
+              f"(Confidence: {prediction_result['confidence'] * 100:.1f}%)")
 
     capturer = PacketCapture()
     print("Initializing DPI Packet Capture...")

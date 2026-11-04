@@ -1,7 +1,12 @@
 from typing import Optional, Callable, Any
-from capture.packet_capture import PacketCapture, find_tshark_path
-from capture.packet_writer import PacketWriter
-from feature.feature_extractor import FeatureExtractor
+try:
+    from capture.packet_capture import PacketCapture, find_tshark_path
+    from capture.packet_writer import PacketWriter
+    from feature.feature_extractor import FeatureExtractor
+except ImportError:
+    from capture.packet_capture import PacketCapture, find_tshark_path
+    from capture.packet_writer import PacketWriter
+    from feature.feature_extractor import FeatureExtractor
 
 fe = FeatureExtractor()
 

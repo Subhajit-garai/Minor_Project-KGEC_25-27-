@@ -23,6 +23,6 @@ feature_columns = [
     'Packet Length Min',
     'Down/Up Ratio',
     'Init Fwd Win Bytes',
-    'Init Bwd Win Bytes'
+    'Init Bwd Win Bytes',
     'Label'
 ]
