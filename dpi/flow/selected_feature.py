@@ -1,0 +1,28 @@
+feature_columns = [
+    'Protocol',
+    'Flow Duration',
+    'Total Fwd Packets',
+    'Total Backward Packets',
+    'Fwd Packets Length Total',
+    'Bwd Packets Length Total',
+    'Flow Bytes/s',
+    'Flow Packets/s',
+    'Flow IAT Mean',
+    'Flow IAT Std',
+    'Flow IAT Max',
+    'Fwd IAT Mean',
+    'Bwd IAT Mean',
+    'SYN Flag Count',
+    'RST Flag Count',
+    'FIN Flag Count',
+    'ACK Flag Count',
+    'PSH Flag Count',
+    'Packet Length Mean',
+    'Packet Length Std',
+    'Packet Length Max',
+    'Packet Length Min',
+    'Down/Up Ratio',
+    'Init Fwd Win Bytes',
+    'Init Bwd Win Bytes'
+    'Label'
+]

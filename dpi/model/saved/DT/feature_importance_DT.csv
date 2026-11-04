@@ -1,0 +1,27 @@
+Feature,Importance
+Init Bwd Win Bytes,0.5004350188721371
+Unnamed: 0,0.4975441505226555
+Init Fwd Win Bytes,0.001988369212237007
+Down/Up Ratio,1.9907967928890235e-05
+ACK Flag Count,6.3559120701542264e-06
+Flow Duration,5.617252252844767e-06
+Flow IAT Max,4.878347055020651e-07
+Flow Packets/s,8.503628007875997e-08
+Flow IAT Mean,7.389732955470651e-09
+Protocol,0.0
+Bwd Packets Length Total,0.0
+Flow Bytes/s,0.0
+Total Backward Packets,0.0
+Fwd Packets Length Total,0.0
+Total Fwd Packets,0.0
+Bwd IAT Mean,0.0
+Fwd IAT Mean,0.0
+Flow IAT Std,0.0
+FIN Flag Count,0.0
+RST Flag Count,0.0
+SYN Flag Count,0.0
+PSH Flag Count,0.0
+Packet Length Max,0.0
+Packet Length Std,0.0
+Packet Length Mean,0.0
+Packet Length Min,0.0

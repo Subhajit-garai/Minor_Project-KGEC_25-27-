@@ -53,9 +53,9 @@ class PredictionEngine:
                 "message": "PredictionEngine model is not loaded"
             }
 
-        # Future ML inference pipeline
-        # e.g., flow_features = flow.extract_ml_features(self.feature_names)
-        # prediction = self.model.predict([flow_features])[0]
+        result = self.model.predict(flow)
+        
+        print("model prediction result :", result)
         return {
             "prediction": "benign",
             "confidence": 1.0,
