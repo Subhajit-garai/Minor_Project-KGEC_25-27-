@@ -31,10 +31,25 @@ if __name__ == "__main__":
             f"[{packet_features['transport_protocol']}] len={packet_features['packet_length']}"
         )
 
+        import uuid
+        pkt_id = f"PKT-{str(uuid.uuid4())[:8].upper()}"
+
         # 1. Telemetry: Ingress Captured
         if broadcast_packet:
             broadcast_packet(
+                packet_id=pkt_id,
                 status="captured",
+                src_ip=packet_features["src_ip"],
+                src_port=packet_features["src_port"],
+                dst_ip=packet_features["dst_ip"],
+                dst_port=packet_features["dst_port"],
+                protocol=packet_features.get("transport_protocol", "TCP"),
+                size=packet_features.get("packet_length", 1500),
+            )
+            # Stage 2: Processing (Feature analysis)
+            broadcast_packet(
+                packet_id=pkt_id,
+                status="processing",
                 src_ip=packet_features["src_ip"],
                 src_port=packet_features["src_port"],
                 dst_ip=packet_features["dst_ip"],
@@ -45,11 +60,39 @@ if __name__ == "__main__":
 
         flow = flow_manager.process_packet(packet_features)
 
+        # Stage 3: Processed (Flow & features assembled)
+        if broadcast_packet:
+            broadcast_packet(
+                packet_id=pkt_id,
+                status="processed",
+                src_ip=packet_features["src_ip"],
+                src_port=packet_features["src_port"],
+                dst_ip=packet_features["dst_ip"],
+                dst_port=packet_features["dst_port"],
+                protocol=packet_features.get("transport_protocol", "TCP"),
+                size=packet_features.get("packet_length", 1500),
+                flow_key=flow.bidirectional_key,
+            )
+
         print(
             f"Flow Key: {flow.bidirectional_key} | "
             f"Total Pkts: {flow.total_packets} (Fwd: {len(flow.fwd_lengths)}, Bwd: {len(flow.bwd_lengths)}) | "
             f"Bytes: {flow.total_bytes} | Duration: {flow.duration}s"
         )
+
+        # Stage 4: Decisioning (ML / Model evaluation)
+        if broadcast_packet:
+            broadcast_packet(
+                packet_id=pkt_id,
+                status="decisioning",
+                src_ip=packet_features["src_ip"],
+                src_port=packet_features["src_port"],
+                dst_ip=packet_features["dst_ip"],
+                dst_port=packet_features["dst_port"],
+                protocol=packet_features.get("transport_protocol", "TCP"),
+                size=packet_features.get("packet_length", 1500),
+                flow_key=flow.bidirectional_key,
+            )
 
         # Predict traffic classification using PredictionEngine
         prediction_result = engine.predict_flow(flow)
@@ -62,11 +105,12 @@ if __name__ == "__main__":
             f"(Confidence: {confidence * 100:.1f}%)"
         )
 
-        # 2. Telemetry: Final Verdict
+        # 5. Telemetry: Final Verdict (Accepted or Rejected)
         if broadcast_packet:
             is_malicious = "malicious" in pred_label.lower() or "attack" in pred_label.lower()
             verdict = "rejected" if is_malicious else "accepted"
             broadcast_packet(
+                packet_id=pkt_id,
                 status=verdict,
                 src_ip=packet_features["src_ip"],
                 src_port=packet_features["src_port"],
@@ -76,13 +120,14 @@ if __name__ == "__main__":
                 size=packet_features.get("packet_length", 1500),
                 prediction=pred_label,
                 confidence=confidence,
+                flow_key=flow.bidirectional_key,
             )
 
     capturer = PacketCapture()
     print("Initializing DPI Packet Capture...")
     capturer.capture_live(
         interface="Wi-Fi",
-        packet_count=10,
+        packet_count=1000,
         bpf_filter="ip or ip6",
         callback=process_packet,
         feature_extractor=feature_extractor

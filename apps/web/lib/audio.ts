@@ -5,7 +5,9 @@ class SoundEffects {
 
   private initCtx() {
     if (!this.ctx && typeof window !== "undefined") {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
       }
@@ -13,6 +15,14 @@ class SoundEffects {
     if (this.ctx && this.ctx.state === "suspended") {
       this.ctx.resume();
     }
+  }
+
+  toggle(enabled?: boolean) {
+    this.enabled = enabled !== undefined ? enabled : !this.enabled;
+    if (this.enabled) {
+      this.initCtx();
+    }
+    return this.enabled;
   }
 
   playPacketTick(status: string) {
@@ -25,10 +35,11 @@ class SoundEffects {
       const gain = this.ctx.createGain();
 
       const freqMap: Record<string, number> = {
+        internet: 330,
         captured: 440,
         processing: 554.37,
         processed: 659.25,
-        disisioning: 880,
+        decisioning: 880,
         accepted: 1108.73,
         rejected: 220,
         error: 180,
@@ -53,4 +64,3 @@ class SoundEffects {
 }
 
 export const soundEffects = new SoundEffects();
-
