@@ -10,11 +10,11 @@ packaging==26.3
 pandas==3.0.6
 pyshark==0.6
 python-dateutil==4.0.0
-redis>=5.0.0
+redis==8.1.0
 scikit-learn==1.9.1
 scipy==1.18.1
 termcolor==3.3.0
 threadpoolctl==3.7.0
 tzdata==2026.6
 uvicorn==0.54.0
-websockets>=13.0
+websockets==17.4
