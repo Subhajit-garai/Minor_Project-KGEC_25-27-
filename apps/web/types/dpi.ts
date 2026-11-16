@@ -34,7 +34,7 @@ export interface PacketMessage {
     flags?: string[];
     ttl?: number;
     window_size?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   history?: Array<{
     stage: PacketStatus;

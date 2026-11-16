@@ -3,13 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   PacketMessage,
-  PacketStatus,
   StageId,
   InFlightPacket,
   PipelineStats,
 } from "../types/dpi";
 import { soundEffects } from "../lib/audio";
-import { getNextLogicalStage } from "../lib/pipelineConfig";
 
 const MAX_PACKET_BUFFER = 400;
 const MAX_CONCURRENT_ANIMATIONS = 24;
@@ -20,7 +18,7 @@ export function useDpiStream() {
   const [wsStatus, setWsStatus] = useState<
     "connected" | "connecting" | "disconnected"
   >("disconnected");
-  const [wsUrl, setWsUrl] = useState<string>("ws://localhost:8000/ws");
+  const [wsUrl, setWsUrl] = useState<string>("ws://127.0.0.1:8000/ws");
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false); // Default to active simulation for immediate interactivity
   const [simSpeed, setSimSpeed] = useState<number>(1); // 0.5x, 1x, 2x, 4x
@@ -67,7 +65,9 @@ export function useDpiStream() {
   const packetTimestamps = useRef<number[]>([]);
   const pulseTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
   const isPausedRef = useRef<boolean>(isPaused);
-  isPausedRef.current = isPaused;
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
 
   // Trigger pulse animation on a node
   const pulseNode = useCallback((stage: StageId) => {
@@ -99,7 +99,7 @@ export function useDpiStream() {
       const pktId =
         incoming.id || `pkt-${Math.random().toString(36).substring(2, 9)}`;
       const normalizedStatus: StageId =
-        incoming.status === ("dicisioning" as any)
+        (incoming.status as string) === "dicisioning"
           ? "decisioning"
           : incoming.status;
 
@@ -257,7 +257,8 @@ export function useDpiStream() {
         if (isNewPacket) {
           stageCounts.internet = (stageCounts.internet || 0) + 1;
         }
-        stageCounts[normalizedStatus] = (stageCounts[normalizedStatus] || 0) + 1;
+        stageCounts[normalizedStatus] =
+          (stageCounts[normalizedStatus] || 0) + 1;
 
         return {
           totalCaptured: newTotal,
@@ -272,25 +273,28 @@ export function useDpiStream() {
         };
       });
     },
-    [pulseNode],
+    [pulseNode, simSpeed],
   );
 
   // Setup Real WebSocket Connection
   useEffect(() => {
     let ws: WebSocket | null = null;
     let reconnectTimeout: NodeJS.Timeout;
+    let isCancelled = false;
 
     function connect() {
+      if (isCancelled) return;
       try {
         setWsStatus("connecting");
         ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
-          setWsStatus("connected");
+          if (!isCancelled) setWsStatus("connected");
         };
 
         ws.onmessage = (event) => {
+          if (isCancelled) return;
           try {
             const data = JSON.parse(event.data);
             if (data.type === "batch" && Array.isArray(data.packets)) {
@@ -304,22 +308,28 @@ export function useDpiStream() {
         };
 
         ws.onerror = () => {
-          setWsStatus("disconnected");
+          if (!isCancelled) setWsStatus("disconnected");
         };
 
         ws.onclose = () => {
-          setWsStatus("disconnected");
-          // Reconnect with backoff
-          reconnectTimeout = setTimeout(connect, 4000);
+          if (!isCancelled) {
+            setWsStatus("disconnected");
+            // Reconnect with backoff
+            reconnectTimeout = setTimeout(connect, 3000);
+          }
         };
       } catch {
-        setWsStatus("disconnected");
+        if (!isCancelled) {
+          setWsStatus("disconnected");
+          reconnectTimeout = setTimeout(connect, 3000);
+        }
       }
     }
 
     connect();
 
     return () => {
+      isCancelled = true;
       if (ws) {
         ws.close();
       }

@@ -65,10 +65,12 @@ class PacketCapture:
         interface: str = "Wi-Fi",
         packet_count: Optional[int] = None,
         bpf_filter: Optional[str] = "ip or ip6",
+        display_filter: Optional[str] = "tcp.port == 3000",
         callback: Optional[Callable[[dict], Any]] = None,
         output_csv: Optional[str] = None,
         feature_extractor: Optional[FeatureExtractor] = None,
         writer: Optional[PacketWriter] = None,
+        port: Optional[int] = 80,
     ) -> int:
         """
         Captures packets from a live network interface synchronously.
@@ -97,7 +99,9 @@ class PacketCapture:
         capture = pyshark.LiveCapture(
             interface=interface,
             bpf_filter=bpf_filter,
+            display_filter=display_filter,
             tshark_path=self.tshark_path
+            
         )
         self._current_capture = capture
 

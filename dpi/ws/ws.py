@@ -17,6 +17,8 @@ _packet_seq = 0
 
 async def _handler(websocket):
     CONNECTED_CLIENTS.add(websocket)
+    remote = getattr(websocket, "remote_address", "client")
+    print(f"[WS] Client connected: {remote} | Active clients: {len(CONNECTED_CLIENTS)}")
     try:
         # Send welcome telemetry message
         welcome = {
@@ -35,8 +37,11 @@ async def _handler(websocket):
         await websocket.send(json.dumps(welcome))
         # Keep client alive until disconnected
         await websocket.wait_closed()
+    except Exception as e:
+        print(f"[WS] Client connection handler exception: {e}")
     finally:
         CONNECTED_CLIENTS.discard(websocket)
+        print(f"[WS] Client disconnected: {remote} | Remaining clients: {len(CONNECTED_CLIENTS)}")
 
 
 def _start_loop(host="0.0.0.0", port=8000):
@@ -45,11 +50,21 @@ def _start_loop(host="0.0.0.0", port=8000):
     asyncio.set_event_loop(LOOP)
 
     async def _main():
-        async with websockets.serve(_handler, host, port):
-            print(f"[WS] DPI Telemetry WebSocket Server listening on ws://{host}:{port}/ws")
-            await asyncio.Future()  # run forever
+        try:
+            async with websockets.serve(_handler, host, port):
+                print(f"[WS] DPI Telemetry WebSocket Server listening on ws://{host}:{port}/ws")
+                print(f"[WS] UI can connect directly to: ws://127.0.0.1:{port}/ws")
+                await asyncio.Future()  # run forever
+        except OSError as e:
+            print(f"[WS ERROR] Failed to bind server to {host}:{port}: {e}")
+            print(f"[WS TIP] Port {port} might be already in use by another running instance.")
+        except Exception as e:
+            print(f"[WS ERROR] Unexpected error in WebSocket server: {e}")
 
-    LOOP.run_until_complete(_main())
+    try:
+        LOOP.run_until_complete(_main())
+    except Exception as e:
+        print(f"[WS ERROR] Event loop stopped: {e}")
 
 
 def start_server_background(host="0.0.0.0", port=8000):
@@ -122,8 +137,8 @@ def broadcast_packet(
             for dc in dead_clients:
                 CONNECTED_CLIENTS.discard(dc)
 
-        asyncio.run_coroutine_threadsafe(_send_all(), LOOP)
-
-
-# Automatically start server on module import
-start_server_background()
+        try:
+            asyncio.run_coroutine_threadsafe(_send_all(), LOOP)
+        except Exception as e:
+            print(f"[WS ERROR] Broadcast dispatch failed: {e}")
+  

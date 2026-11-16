@@ -39,7 +39,7 @@ export default function Home() {
   useEffect(() => {
     const savedTheme = localStorage.getItem("dpi-flow-theme") as "dark" | "light" | null;
     if (savedTheme) {
-      setTheme(savedTheme);
+      requestAnimationFrame(() => setTheme(savedTheme));
       if (savedTheme === "dark") {
         document.documentElement.classList.add("dark");
       } else {

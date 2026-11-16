@@ -11,17 +11,14 @@ from feature.feature_extractor import FeatureExtractor
 from flow.flow_manager import FlowManager
 from utils.logger import logger as log
 from model.predict import engine, model, features
-
-try:
-    from ws.ws import broadcast_packet
-except ImportError:
-    broadcast_packet = None
+from ws.ws import broadcast_packet ,_start_loop ,start_server_background
 
 
 if __name__ == "__main__":
     logger = log()
     feature_extractor = FeatureExtractor()
     flow_manager = FlowManager()
+    start_server_background()
 
     def process_packet(packet_features: dict):
         logger.log(
@@ -123,12 +120,24 @@ if __name__ == "__main__":
                 flow_key=flow.bidirectional_key,
             )
 
+    import os
+    target_interface = os.environ.get("DPI_INTERFACE", sys.argv[1] if len(sys.argv) > 1 else "Wi-Fi")
+
     capturer = PacketCapture()
-    print("Initializing DPI Packet Capture...")
-    capturer.capture_live(
-        interface="Wi-Fi",
-        packet_count=1000,
-        bpf_filter="ip or ip6",
-        callback=process_packet,
-        feature_extractor=feature_extractor
-    )
+    print(f"Initializing DPI Packet Capture on interface '{target_interface}' (packet_count=0 for continuous)...")
+    try:
+        capturer.capture_live(
+            interface=target_interface,
+            packet_count=0,
+            bpf_filter="ip or ip6",
+            display_filter="tcp.port == 3000",
+            callback=process_packet,
+            feature_extractor=feature_extractor
+        )
+        pass
+    except KeyboardInterrupt:
+        print("\nPacket capture stopped by user.")
+    except Exception as e:
+        print(f"[ERROR] Live capture failed on interface '{target_interface}': {e}")
+        print("[TIP] You can pass a different interface: python dpi/main.py <interface_name>")
+        print("[TIP] For example: python dpi/main.py Ethernet or python dpi/main.py \"Wi-Fi\"")

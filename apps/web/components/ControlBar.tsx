@@ -144,7 +144,7 @@ export const ControlBar: React.FC<Props> = ({
                   type="text"
                   value={tempUrl}
                   onChange={(e) => setTempUrl(e.target.value)}
-                  placeholder="ws://localhost:8000/ws"
+                  placeholder="ws://127.0.0.1:8000/ws"
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
                 <div className="flex justify-end gap-2 pt-1">

@@ -118,7 +118,7 @@ export const LivePacketTable: React.FC<Props> = ({
           {/* Status Filter */}
           <select
             value={selectedStageFilter}
-            onChange={(e) => onSelectStage(e.target.value as any)}
+            onChange={(e) => onSelectStage(e.target.value as StageId | "all")}
             className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 shadow-xs"
           >
             <option value="all">All Stages</option>
